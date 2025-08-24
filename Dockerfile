@@ -1,13 +1,15 @@
-# Use a base image with Emscripten and Node.js installed
-# The emscripten image doesn't include node, so we'll use a more flexible base.
+# Use a base image with Node.js and a package manager
 FROM node:18-alpine
 
-# Install Emscripten using the emsdk
+# Install build dependencies and clone the emsdk repository
 RUN apk add --no-cache git python3
-RUN git clone https://github.com/emscripten-core/emsdk.git
-RUN emsdk/emsdk install latest
-RUN emsdk/emsdk activate latest
-ENV PATH="/emsdk:$PATH"
+
+# Use a single RUN command to install, activate, and add emcc to the PATH
+RUN git clone https://github.com/emscripten-core/emsdk.git \
+    && cd emsdk \
+    && ./emsdk install latest \
+    && ./emsdk activate latest \
+    && . /emsdk/emsdk_env.sh
 
 # Set the working directory
 WORKDIR /app

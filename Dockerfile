@@ -1,5 +1,5 @@
-# Use a base image with Emscripten installed
-FROM trzeci/emscripten
+# Use a modern Emscripten image (actively maintained)
+FROM emscripten/emsdk:latest
 
 # Set the working directory
 WORKDIR /app
@@ -8,11 +8,13 @@ WORKDIR /app
 COPY . .
 
 # Build the project
-RUN emcc main.c tetris.c -o tetris.html -s USE_SDL=2 -s USE_SDL_TTF=2 --preload-file DejaVuSansMono.ttf
+RUN emcc main.c tetris.c -o tetris.html \
+    -s USE_SDL=2 \
+    -s USE_SDL_TTF=2 \
+    --preload-file DejaVuSansMono.ttf
 
-# Install a web server (nginx is a great choice)
-# Use apt-get as this image is not Alpine-based
-RUN apt-get update && apt-get install -y nginx
+# Install nginx
+RUN apt-get update && apt-get install -y nginx && rm -rf /var/lib/apt/lists/*
 
 # Configure nginx to serve files from the /app directory
 COPY nginx.conf /etc/nginx/nginx.conf
@@ -20,5 +22,5 @@ COPY nginx.conf /etc/nginx/nginx.conf
 # Expose the default HTTP port
 EXPOSE 80
 
-# The command to run when the container starts
+# Start nginx
 CMD ["nginx", "-g", "daemon off;"]

@@ -11,8 +11,8 @@ COPY . .
 RUN emcc main.c tetris.c -o tetris.html -s USE_SDL=2 -s USE_SDL_TTF=2 --preload-file DejaVuSansMono.ttf
 
 # Install a web server (nginx is a great choice)
-# The base image is based on Alpine Linux, so we use `apk`
-RUN apk add --no-cache nginx
+# Use apt-get as this image is not Alpine-based
+RUN apt-get update && apt-get install -y nginx
 
 # Configure nginx to serve files from the /app directory
 COPY nginx.conf /etc/nginx/nginx.conf

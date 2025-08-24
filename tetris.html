@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en-us">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emscripten App</title>
+  <style>
+    /*
+     * CSS Variables for consistent theming
+     */
+    :root {
+      --bg-color: #2c3e50;
+      --text-color: #ecf0f1;
+      --primary-color: #3498db;
+      --secondary-color: #2980b9;
+      --border-radius: 8px;
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    /*
+     * Basic Body and Container Styling
+     * Centers the main content and provides a dark theme
+     */
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 900px;
+      background-color: #34495e;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+
+    /*
+     * Header and Status Area
+     * Styles for the title, loading status, and spinner
+     */
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      color: var(--primary-color);
+      font-size: 2.5rem;
+      margin: 0;
+    }
+
+    .status-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    #status {
+      font-weight: bold;
+      color: var(--primary-color);
+      margin-top: 10px;
+    }
+
+    .spinner {
+      height: 30px;
+      width: 30px;
+      animation: rotation 1.5s linear infinite;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top-color: var(--primary-color);
+      border-radius: 50%;
+      display: none; /* Hidden by default */
+    }
+
+    #progress {
+      width: 100%;
+      height: 10px;
+      appearance: none;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    #progress::-webkit-progress-bar {
+      background-color: var(--secondary-color);
+    }
+
+    #progress::-webkit-progress-value {
+      background-color: var(--primary-color);
+      transition: width 0.3s ease-in-out;
+    }
+
+    #progress::-moz-progress-bar {
+      background-color: var(--primary-color);
+    }
+
+    /*
+     * Canvas and Output Console
+     * Main display area for the game and debug output
+     */
+    .canvas-container {
+      width: 100%;
+      background-color: #000;
+      border: 2px solid var(--secondary-color);
+      border-radius: var(--border-radius);
+      overflow: hidden;
+    }
+
+    #canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-height: 70vh;
+      border: 0px none;
+      background-color: black;
+    }
+
+    #output {
+      width: 100%;
+      height: 150px;
+      margin-top: 20px;
+      border: 1px solid #555;
+      border-radius: var(--border-radius);
+      padding: 10px;
+      background-color: #1e1e1e;
+      color: #00ff00;
+      font-family: 'Consolas', 'Courier New', monospace;
+      outline: none;
+      resize: vertical;
+      box-sizing: border-box;
+    }
+
+    /*
+     * Controls Section
+     * Styles for the checkboxes and fullscreen button
+     */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .control-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+    }
+
+    input[type="checkbox"] {
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--primary-color);
+      border-radius: 4px;
+      cursor: pointer;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    input[type="checkbox"]:checked {
+      background-color: var(--primary-color);
+    }
+
+    input[type="checkbox"]:checked::after {
+      content: '✓';
+      color: var(--text-color);
+      font-size: 14px;
+      position: absolute;
+    }
+
+    input[type="button"] {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px !important;
+      background-color: var(--primary-color);
+      color: var(--text-color);
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    input[type="button"]:hover {
+      background-color: var(--secondary-color);
+    }
+
+    /*
+     * Animations and Media Queries
+     * Provides a smooth spinner animation and mobile-friendly layout
+     */
+    @keyframes rotation {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 10px;
+      }
+      h1 {
+        font-size: 1.8rem;
+      }
+      .controls {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Tetris</h1>
+    <div class="status-area">
+      <div class="spinner" id='spinner'></div>
+      <div id="status"></div>
+      <progress value="0" max="100" id="progress" hidden></progress>
+    </div>
+  </header>
+
+  <div class="canvas-container">
+    <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+  </div>
+
+  <textarea id="output" rows="8"></textarea>
+
+  <div class="controls">
+    <div class="control-item">
+      <input type="checkbox" id="resize">
+      <label for="resize">Resize canvas</label>
+    </div>
+    <div class="control-item">
+      <input type="checkbox" id="pointerLock" checked>
+      <label for="pointerLock">Lock/hide mouse pointer</label>
+    </div>
+    <input type="button" value="Fullscreen" onclick="Module.requestFullscreen(document.getElementById('pointerLock').checked, document.getElementById('resize').checked)">
+  </div>
+
+</div>
+
+<script type='text/javascript'>
+  // Get DOM elements for status display
+  var statusElement = document.getElementById('status');
+  var progressElement = document.getElementById('progress');
+  var spinnerElement = document.getElementById('spinner');
+  var canvasElement = document.getElementById('canvas');
+  var outputElement = document.getElementById('output');
+  if (outputElement) outputElement.value = ''; // clear browser cache
+
+  // Handle WebGL context loss gracefully
+  canvasElement.addEventListener('webglcontextlost', (e) => {
+    alert('WebGL context lost. You will need to reload the page.');
+    e.preventDefault();
+  }, false);
+
+  // The Emscripten Module object. The compiled C code will use this to interact with the web page.
+  var Module = {
+    // Custom print function to redirect console output to the textarea
+    print(...args) {
+      console.log(...args);
+      if (outputElement) {
+        var text = args.join(' ');
+        outputElement.value += text + "\n";
+        outputElement.scrollTop = outputElement.scrollHeight;
+      }
+    },
+    canvas: canvasElement, // Reference to the canvas element
+    // Function to update the loading status text and progress bar
+    setStatus(text) {
+      Module.setStatus.last ??= { time: Date.now(), text: '' };
+      if (text === Module.setStatus.last.text) return;
+      var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
+      var now = Date.now();
+      if (m && now - Module.setStatus.last.time < 30) return;
+      Module.setStatus.last.time = now;
+      Module.setStatus.last.text = text;
+      if (m) {
+        text = m[1];
+        progressElement.value = parseInt(m[2]) * 100;
+        progressElement.max = parseInt(m[4]) * 100;
+        progressElement.hidden = false;
+        spinnerElement.style.display = 'block';
+      } else {
+        progressElement.value = null;
+        progressElement.max = null;
+        progressElement.hidden = true;
+        if (!text) spinnerElement.style.display = 'none';
+      }
+      statusElement.textContent = text;
+    },
+    totalDependencies: 0,
+    monitorRunDependencies(left) {
+      this.totalDependencies = Math.max(this.totalDependencies, left);
+      Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies-left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
+    }
+  };
+  Module.setStatus('Downloading...');
+
+  // Basic error handler
+  window.onerror = (event) => {
+    Module.setStatus('Exception thrown, see JavaScript console');
+    spinnerElement.style.display = 'none';
+    Module.setStatus = (text) => {
+      if (text) console.error('[post-exception status] ' + text);
+    };
+  };
+</script>
+<script async type="text/javascript" src="tetris.data"></script>
+<script async type="text/javascript" src="tetris.js"></script>
+</body>
+</html>

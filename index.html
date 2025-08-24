@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tetris</title>
+    <style>
+        body { background-color: #333; color: white; text-align: center; }
+        canvas { background-color: black; border: 2px solid white; }
+    </style>
+</head>
+<body>
+<h1>Tetris</h1>
+<canvas id="gameCanvas" width="200" height="400"></canvas>
+<script src="tetris.js"></script>
+<script>
+    var Module = {
+        onRuntimeInitialized: function() {
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            const cellSize = 20;
+
+            const initGame = Module.cwrap('init_game', null, []);
+            const moveLeft = Module.cwrap('move_piece_left', null, []);
+            const moveRight = Module.cwrap('move_piece_right', null, []);
+            const moveDown = Module.cwrap('move_piece_down', null, []);
+            const getBoardData = Module.cwrap('get_board_data', null, ['number']);
+
+            const bufferSize = 20 * 10 * 4;
+            const buffer = Module._malloc(bufferSize);
+
+            initGame();
+            draw();
+
+            function draw() {
+                getBoardData(buffer);
+                const board = new Int32Array(Module.HEAP32.buffer, buffer, 200);
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                for (let i = 0; i < 20; i++) {
+                    for (let j = 0; j < 10; j++) {
+                        const value = board[i * 10 + j];
+                        if (value === 1) {
+                            ctx.fillStyle = 'cyan';
+                            ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
+                        }
+                        ctx.strokeRect(j * cellSize, i * cellSize, cellSize, cellSize);
+                    }
+                }
+            }
+
+            document.addEventListener('keydown', (e) => {
+                switch(e.key) {
+                    case 'ArrowLeft':
+                        moveLeft();
+                        break;
+                    case 'ArrowRight':
+                        moveRight();
+                        break;
+                    case 'ArrowDown':
+                        moveDown();
+                        break;
+                }
+                draw();
+            });
+        }
+    };
+</script>
+</body>
+</html>
